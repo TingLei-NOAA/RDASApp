@@ -1,0 +1,85 @@
+geometry:
+  fms initialization:
+    namelist filename: DataFix/fmsmpp.nml
+    field table filename: DataFix/field_table
+  namelist filename: DataFix/input_lam_C775.nml
+  field metadata override: Data/fieldmetadata/tlei-gfs-restart.yaml
+  akbk: DataFix/fix/akbk61.nc
+  # input.nml
+  npz: 60
+  layout: [8,10]
+  io_layout: [1,1]
+  ntiles: 1 
+
+background:
+  datetime: 2022-05-26T19:00:00Z
+  filetype: fms restart
+  datapath: Data/bkg
+  filename_core: fv3_dynvars.nc
+  filename_trcr: fv3_tracer.nc
+  filename_sfcd: fv3_sfcdata.nc
+  filename_sfcw: fv3_srf_wnd.nc
+  filename_cplr: coupler.res
+  state variables: &stateVariables [ua,va,air_temperature,air_pressure_thickness,specific_humidity,cloud_liquid_ice,cloud_liquid_water,ozone_mass_mixing_ratio]
+
+
+background error:
+  covariance model: SABER
+  saber central block:
+    saber block name: ID
+  saber outer blocks:
+  - saber block name: BUMP_StdDev
+    calibration:
+      general:
+        universe length-scale: 3000.0e3
+      io:
+        data directory: Data_static/staticb_rrfs
+        files prefix: var_aero
+      drivers:
+        multivariate strategy: univariate
+      ensemble sizes:
+        sub-ensembles: 3
+      diagnostics:
+        target ensemble size: 30
+      variance:
+        objective filtering: true
+        filtering iterations: 1
+        initial length-scale:
+        - variables: *stateVariables
+          value: 300.0e3
+      input model files:
+      - parameter: var
+        component: 1
+        file:
+          set datetime on read: true
+          datetime: 2022-05-26T19:00:00Z
+          filetype: fms restart
+          datapath: Data_static/staticb_rrfs/
+          filename_core: 20220526.190000.var.fv_core.res.nc
+          filename_trcr: 20220526.190000.var.fv_tracer.res.nc
+          filename_sfcd: 20220526.190000.var.sfc_data.nc
+          filename_sfcw: 20220526.190000.var.fv_srf_wnd.res.nc
+          filename_cplr: 20220526.190000.var.coupler.res
+      - parameter: m4
+        component: 1
+        file:
+          set datetime on read: true
+          datetime: 2022-05-26T19:00:00Z
+          filetype: fms restart
+          datapath: Data_static/staticb_rrfs/
+          filename_core: 20220526.190000.m4.fv_core.res.nc
+          filename_trcr: 20220526.190000.m4.fv_tracer.res.nc
+          filename_sfcd: 20220526.190000.m4.sfc_data.nc
+          filename_sfcw: 20220526.190000.m4.fv_srf_wnd.res.nc
+          filename_cplr: 20220526.190000.m4.coupler.res
+      output model files:
+      - parameter: stddev
+        file:
+          filetype: fms restart
+          datapath: Data_static/staticb_rrfs_step2/
+          filename_core: stddev.fv_core.res.nc
+          filename_trcr: stddev.fv_tracer.res.nc
+          filename_sfcd: stddev.sfc_data.nc
+          filename_sfcw: stddev.fv_srf_wnd.res.nc
+          filename_cplr: stddev.coupler.res
+
