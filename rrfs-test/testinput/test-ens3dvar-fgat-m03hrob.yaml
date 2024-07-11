@@ -1,0 +1,152 @@
+
+# application-agnostic anchors that specify observation errors
+# applicable to Variational, HofX3D
+# reusable latitude bands for all observation types
+_conventional obs localizations: &heightAndHorizObsLoc
+  _blank: null
+
+_nonconventional obs localizations: &horizObsLoc
+  _blank: null
+
+_obs space: &ObsSpace
+  obs perturbations seed: 1
+  io pool:
+    max pool size: 10
+  distribution:
+    name: RoundRobin
+
+_obs error diagonal: &ObsErrorDiagonal
+  covariance model: diagonal
+  # Note: the same 'obs perturbations seed' must be used for all members for the 'zero-mean perturbations' option to work
+  zero-mean perturbations: true
+  member: 1
+  number of members: 1
+
+_get values: &GetValues
+  nnearest: 3
+
+_multi iteration filter: &multiIterationFilter
+  apply at iterations: 0,1,2,3,4,5
+# ObsAnchors and ObsErrorAnchors are automatically prepended above this line
+_iteration: &iterationConfig
+  geometry:
+    nml_file: ./namelist.atmosphere_15km
+    streams_file: ./streams.atmosphere_15km
+    deallocate non-da fields: true
+    interpolation type: unstructured
+  gradient norm reduction: 1e-3
+_member: &memberConfig
+  date: &analysisDate 2022-05-26T19:00:00Z
+  state variables: &incvars [ spechum,surface_pressure,temperature,uReconstructMeridional,uReconstructZonal]
+  stream name: ensemble
+
+output:
+  filename: ./an_loch200v6km-obsm3hr_.$Y-$M-$D_$h.$m.$s.nc
+  stream name: analysis
+variational:
+  minimizer:
+    algorithm: DRPCG
+  iterations:
+  - <<: *iterationConfig
+    diagnostics:
+      departures: ombg
+    ninner: 50
+  - <<: *iterationConfig
+    ninner: 50
+final:
+  diagnostics:
+    departures: oman
+  increment: # total increment
+    geometry:
+      nml_file: ./namelist.atmosphere_15km
+      streams_file: ./streams.atmosphere_15km
+      deallocate non-da fields: true
+      interpolation type: unstructured
+    output:
+      state component:
+        filename: "./Data/states/mpas_obsm3hr_3denvar_fgat_bumploch200kmv6km.inc.$Y-$M-$D_$h.$m.$s.nc"
+        stream name: control
+
+
+cost function:
+  cost type: 3D-FGAT
+  time window:
+     begin: 2022-05-26T16:00:00Z
+     length: PT6H
+  jb evaluation: true
+  geometry:
+    nml_file: ./namelist.atmosphere_15km
+    streams_file: ./streams.atmosphere_15km
+    deallocate non-da fields: true
+    interpolation type: unstructured
+  model:
+    name: PseudoModel  #Generic PseudoModel from OOPS
+    tstep: PT3H
+    states:
+    - date: '2022-05-26T19:00:00Z'
+      filename: "./bg.2022-05-26_19.00.00.nc"
+      state variables: &stvars
+                       [temperature, spechum, uReconstructZonal, uReconstructMeridional, surface_pressure,
+                       theta, rho, u, qv, pressure, landmask, xice, snowc, skintemp, ivgtyp, isltyp,
+                       qc, qi, qr, qs, qg, pressure_p, snowh, vegfra, u10, v10, lai, smois, tslb, w]
+    - date: '2022-05-26T22:00:00Z'
+      filename: "./bg.2022-05-26_22.00.00.nc"
+      state variables: *stvars
+
+
+  analysis variables: *incvars 
+  background:
+    state variables: *stvars 
+    filename: ./bg.2022-05-26_16.00.00.nc
+    date: 2022-05-26T16:00:00Z  
+  background error:
+    covariance model: ensemble
+    localization:
+      localization method: SABER
+      saber central block:
+        saber block name: BUMP_NICAS
+        active variables: *incvars
+        read:
+          io:
+            data directory: ./BUMP_files/
+            files prefix: bumploc_200km6km 
+          drivers:
+            multivariate strategy: duplicated
+            read local nicas: true
+          model:
+            level for 2d variables: last
+
+    members from template:
+      template:
+        <<: *memberConfig
+        filename: ./ensemble/%iMember%/restart.nc
+      pattern: %iMember%
+      start: 1
+      zero padding: 1
+      nmembers: 5 
+  observations:
+     observers:
+     - obs space:
+         name: Aircraft
+         simulated variables: [air_temperature]
+         observed variables: [air_temperature]
+         obsdatain:
+           engine:
+             type: GenList
+             lats: [ 34.993101 ]
+             lons: [ 270 ]
+             vert coord type: pressure
+             vert coords: [ 70000 ]
+             dateTimes: [ 0  ]
+             epoch: "seconds since 2022-05-26T16:00:00Z"
+             obs errors: [1.0]
+             obs values: [290]
+         obsdataout:
+           engine:
+             type: H5File
+             obsfile: Data/hofx/aircraft_oneob_loch200kmv6km-obsm3hr_ens3dvar_202205261900_m.nc4
+       get values:
+         time interpolation: linear
+       obs operator:
+         name: VertInterp
+
