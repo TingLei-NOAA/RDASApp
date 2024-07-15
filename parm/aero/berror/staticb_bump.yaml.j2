@@ -1,0 +1,25 @@
+covariance model: SABER
+saber central block:
+  saber block name: BUMP_NICAS
+  read:
+    io:
+      data directory: &staticb_aero_dir "{{ DATA }}/berror"
+      files prefix: 'nicas_aero'
+      overriding universe radius file: cor_aero_universe_radius
+    drivers:
+      multivariate strategy: univariate
+      read universe radius: true
+      read local nicas: true
+saber outer blocks:
+- saber block name: StdDev
+  read:
+    model file:
+      datetime: '{{ current_cycle | to_isotime }}' 
+      set datetime on read: true
+      filetype: fms restart
+      psinfile: true
+      datapath: "{{ DATA }}/berror"
+      filename_core: '{{ current_cycle | to_fv3time }}.stddev.fv_core.res.nc'
+      filename_trcr: '{{ current_cycle | to_fv3time }}.stddev.fv_tracer.res.nc'
+      filename_cplr: '{{ current_cycle | to_fv3time }}.stddev.coupler.res'
+      date: '{{ current_cycle | to_isotime }}' 
