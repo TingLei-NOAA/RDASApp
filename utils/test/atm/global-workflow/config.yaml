@@ -1,0 +1,22 @@
+base:
+  HOMEgfs: "@topdir@"
+  DOHYBVAR: "NO"
+  DO_JEDIATMVAR: "YES"
+  DO_JEDIATMENS: "YES"
+  EUPD_CYC: "gdas"
+  DATAPATH: "@bindir@/test/atm/global-workflow/testrun"
+  DUMPDIR: "@dumpdir@"
+  STMP: "@bindir@/test/atm/global-workflow/testrun"
+  PTMP: "@bindir@/test/atm/global-workflow/testrun"
+
+atmanl:
+  JCB_ALGO_YAML: "@srcdir@/test/atm/global-workflow/jcb-prototype_3dvar.yaml.j2"
+  STATICB_TYPE: "identity"
+  ATMRES_ANL: "C48"
+  LAYOUT_X_ATMANL: 1
+  LAYOUT_Y_ATMANL: 1
+
+atmensanl:
+  JCB_ALGO_YAML: "@srcdir@/test/atm/global-workflow/jcb-prototype_lgetkf.yaml.j2"
+  LAYOUT_X_ATMENSANL: 1
+  LAYOUT_Y_ATMENSANL: 1
