@@ -1,0 +1,167 @@
+cost function:
+  cost type: 3D-Var
+  time window:
+    begin: 2022-05-26T18:00:00Z
+    length: PT2H
+  analysis variables: &3dvars [air_temperature,air_pressure_thickness,specific_humidity,cloud_liquid_ice,cloud_liquid_water,ozone_mass_mixing_ratio]
+  geometry:
+    fms initialization:
+      namelist filename: DataFix_conus/fmsmpp.nml
+      field table filename: DataFix_conus/field_table
+    namelist filename: DataFix_conus/input_lam_3km_conus.nml
+    akbk: DataFix_conus/fix/akbk66.nc
+    field metadata override: Data_conus/fieldmetadata/tlei-gfs-restart.yaml
+    # input.nml
+    npz: 65
+    layout: [15,20]
+    io_layout: [1,1]
+    ntiles: 1 
+
+
+  background:
+    datetime: 2022-05-26T19:00:00Z
+    filetype: fms restart
+    datapath: Data_conus/bkg
+    filename_core: fv3_dynvars.nc
+    filename_trcr: fv3_tracer.nc
+    filename_sfcd: fv3_sfcdata.nc
+    filename_sfcw: fv3_srf_wnd.nc
+    filename_cplr: coupler.res
+    state variables: *3dvars
+  background error:
+    covariance model: ensemble
+    members from template:
+      template:
+        datetime: 2022-05-26T19:00:00Z
+        filetype: fms restart
+        state variables: *3dvars
+        datapath: Data_13kmconus/inputs/mem%mem%/
+        filename_core: 20220526.190000.fv_core.res.tile1.nc
+        filename_trcr: 20220526.190000.fv_tracer.res.tile1.nc
+        filename_sfcd: 20220526.190000.sfc_data.nc
+        filename_sfcw: 20220526.190000.fv_srf_wnd.res.nc
+        filename_cplr: 20220526.190000.coupler.res
+      pattern: %mem%
+      nmembers: 2 
+      zero padding: 3
+    localization:
+      localization method: SABER
+      saber central block:
+        saber block name: BUMP_NICAS
+        active variables: *3dvars
+        read:
+          io:
+            files prefix: Data_13kmconus/bump_new4dualres/fv3jedi_bumpparameters_nicas_lam_atm
+            alias:
+            - in code: common
+              in file: fixed_250km_0.3
+
+          drivers:
+             multivariate strategy: duplicated
+             read local nicas: true
+
+  observations:
+     observers:
+     - obs space:
+         name: Aircraft
+         obsdatain:
+           engine:
+             type: H5File
+             obsfile: Data_conus/obs/rass_tsen_obs_2022052619.nc4
+         obsdataout:
+           engine:
+             type: H5File
+             obsfile: Data_conus/hofx/rass_tsen_obs_2022052619.nc4
+         simulated variables: [airTemperature]
+         observed variables: [airTemperature]
+       obs operator:
+         name: VertInterp
+       obs error:
+         covariance model: diagonal
+       obs filters:
+       - filter: Bounds Check
+         filter variables:
+         - name: airTemperature@GsiUseFlag 
+         minvalue: 0.5 
+         maxvalue: 1.5 
+         action:
+            name: accept 
+
+     - obs space:
+         name: sonde  
+         obsdatain:
+           engine:
+             type: H5File
+             obsfile: Data_conus/obs/sondes_tsen_obs_2022052619.nc4
+         obsdataout:
+           engine:
+             type: H5File
+             obsfile: Data_conus/hofx/rass_tsen_obs_2022052619.nc4
+         simulated variables: [airTemperature]
+         observed variables: [airTemperature]
+       obs operator:
+         name: VertInterp
+       obs error:
+         covariance model: diagonal
+       obs filters:
+       - filter: Bounds Check
+         filter variables:
+         - name: airTemperature@GsiUseFlag 
+         minvalue: 0.5 
+         maxvalue: 1.5 
+         action:
+            name: accept 
+
+
+
+
+
+
+variational:
+  minimizer:
+    algorithm: DRIPCG
+  iterations:
+  - ninner: 10
+    gradient norm reduction: 1e-10
+    test: on
+    geometry:
+      fms initialization:
+        namelist filename: DataFix_13kmconus/fmsmpp.nml
+        field table filename: DataFix_13kmconus/field_table
+      namelist filename: DataFix_13kmconus/input_lam_C775_15X20.nml
+      akbk: DataFix_13kmconus/fix/akbk61.nc
+      field metadata override: Data_13kmconus/fieldmetadata/tlei-gfs-restart.yaml
+      # input.nml
+      npz: 60
+      layout: [15,20]
+      io_layout: [1,1]
+      ntiles: 1 
+    diagnostics:
+      departures: ombg
+  - ninner: 5
+    gradient norm reduction: 1e-10
+    test: on
+    geometry:
+      fms initialization:
+        namelist filename: DataFix_13kmconus/fmsmpp.nml
+        field table filename: DataFix_13kmconus/field_table
+      namelist filename: DataFix_13kmconus/input_lam_C775_15X20.nml
+      akbk: DataFix_13kmconus/fix/akbk61.nc
+      field metadata override: Data_13kmconus/fieldmetadata/tlei-gfs-restart.yaml
+      # input.nml
+      npz: 60
+      layout: [15,20]
+      io_layout: [1,1]
+      ntiles: 1 
+    diagnostics:
+      departures: ombg
+final:
+  diagnostics:
+    departures: oman
+
+output:
+  filetype: fms restart
+  datapath: Data_conus/dualres_analysis/
+  prefix: pr-Ens3dvar-fv3_lam-C775 #Ens3dvar-fv3_lam-C775
+  frequency: PT1H
+
